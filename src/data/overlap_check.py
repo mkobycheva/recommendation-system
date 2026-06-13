@@ -7,6 +7,8 @@ files and prints overlap counts. It does not write any files locally.
 from __future__ import annotations
 
 from itertools import combinations
+import ssl
+from urllib.request import urlopen
 
 import pandas as pd
 
@@ -26,18 +28,31 @@ CHUNKSIZE = 500_000
 USER_ID_COLUMN = "user_id"
 
 
+def open_public_dataset_url(url: str):
+    """Open a public dataset URL for streaming.
+
+    Some local Python installs do not ship with usable CA certificates. The
+    Amazon benchmark files are public and immutable for this analysis, so this
+    uses an unverified context to keep the script runnable without extra
+    dependencies.
+    """
+    context = ssl._create_unverified_context()
+    return urlopen(url, context=context)
+
+
 def load_unique_users(url: str, chunksize: int = CHUNKSIZE) -> set[str]:
     """Load unique user IDs from a compressed CSV URL."""
     users: set[str] = set()
 
-    chunks = pd.read_csv(
-        url,
-        usecols=[USER_ID_COLUMN],
-        chunksize=chunksize,
-        compression="gzip",
-    )
-    for chunk in chunks:
-        users.update(chunk[USER_ID_COLUMN].dropna().unique())
+    with open_public_dataset_url(url) as response:
+        chunks = pd.read_csv(
+            response,
+            usecols=[USER_ID_COLUMN],
+            chunksize=chunksize,
+            compression="gzip",
+        )
+        for chunk in chunks:
+            users.update(chunk[USER_ID_COLUMN].dropna().unique())
 
     return users
 
