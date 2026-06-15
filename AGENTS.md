@@ -89,6 +89,8 @@ valid train/validation/test splits.
 Train one collective ALS model on merged Books and Movies train interactions.
 Create globally unique item IDs with a domain prefix, then filter recommendations
 back to the requested target domain before evaluating top-K metrics.
+MAP@K must be implemented in shared Python code under `src/evaluation/`, not only
+inside the notebook.
 
 ---
 

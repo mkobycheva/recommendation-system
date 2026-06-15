@@ -18,7 +18,7 @@ class MapAtKTest(unittest.TestCase):
     def test_average_precision_duplicate_recommendations_count_once(self):
         result = average_precision_at_k(["a", "a", "b"], {"a", "b"}, k=10)
 
-        self.assertAlmostEqual(result, (1 / 1 + 2 / 3) / 2)
+        self.assertEqual(result, 1.0)
 
     def test_average_precision_no_relevant_items_returns_zero(self):
         self.assertEqual(average_precision_at_k(["a", "b"], set(), k=10), 0.0)

@@ -22,7 +22,8 @@ def rmse(*args, **kwargs):
 def average_precision_at_k(recommended_items, relevant_items, k=10):
     """Compute average precision at K for one user.
 
-    Duplicate recommendations are ignored after their first occurrence.
+    Duplicate recommendations are removed after their first occurrence before
+    applying the ranking cutoff.
     Users with no relevant held-out items receive 0.0.
     """
     if k <= 0:
@@ -35,14 +36,17 @@ def average_precision_at_k(recommended_items, relevant_items, k=10):
     hits = 0
     precision_sum = 0.0
     seen = set()
+    deduped_recommendations = []
 
-    for rank, item in enumerate(recommended_items or [], start=1):
-        if rank > k:
-            break
+    for item in recommended_items or []:
         if item in seen:
             continue
         seen.add(item)
+        deduped_recommendations.append(item)
+        if len(deduped_recommendations) == k:
+            break
 
+    for rank, item in enumerate(deduped_recommendations, start=1):
         if item in relevant:
             hits += 1
             precision_sum += hits / rank
