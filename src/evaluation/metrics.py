@@ -1,22 +1,36 @@
 """Recommendation metrics shared by notebooks."""
 
 from collections.abc import Mapping
+import numpy as np
 
 
-def ndcg_at_k(*args, **kwargs):
-    raise NotImplementedError("ndcg_at_k is not implemented yet.")
+def ndcg_at_k(recommended, relevant, k=10):
+    """Normalized Discounted Cumulative Gain at K."""
+    relevant = set(relevant)
+    dcg = sum(1 / np.log2(i + 2) for i, item in enumerate(recommended[:k]) if item in relevant)
+    idcg = sum(1 / np.log2(i + 2) for i in range(min(len(relevant), k)))
+    return dcg / idcg if idcg > 0 else 0.0
 
 
-def recall_at_k(*args, **kwargs):
-    raise NotImplementedError("recall_at_k is not implemented yet.")
+def recall_at_k(recommended, relevant, k=10):
+    """Recall at K."""
+    relevant = set(relevant)
+    hits = sum(1 for item in recommended[:k] if item in relevant)
+    return hits / len(relevant) if relevant else 0.0
 
 
-def precision_at_k(*args, **kwargs):
-    raise NotImplementedError("precision_at_k is not implemented yet.")
+def precision_at_k(recommended, relevant, k=10):
+    """Precision at K."""
+    relevant = set(relevant)
+    hits = sum(1 for item in recommended[:k] if item in relevant)
+    return hits / k if k > 0 else 0.0
 
 
-def rmse(*args, **kwargs):
-    raise NotImplementedError("rmse is not implemented yet.")
+def rmse(predicted, actual):
+    """Root Mean Squared Error."""
+    predicted = np.array(predicted)
+    actual = np.array(actual)
+    return float(np.sqrt(np.mean((predicted - actual) ** 2)))
 
 
 def average_precision_at_k(recommended_items, relevant_items, k=10):
