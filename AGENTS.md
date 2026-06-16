@@ -61,6 +61,7 @@ that enough users exist across multiple domains to make cross-domain transfer vi
 **`src/evaluation/`** contains shared metric functions used by every notebook.
 Write this before training any model. Primary metrics are NDCG@10 and Recall@10.
 Secondary metrics are Precision@10 and RMSE.
+MAP@K must be implemented here as shared Python code, not only inside a notebook.
 
 **`configs/model_configs.py`** stores all hyperparameters as plain Python dicts.
 Never hardcode hyperparameters inside a notebook. Import them from here instead.
@@ -70,6 +71,26 @@ Never hardcode hyperparameters inside a notebook. Import them from here instead.
 Train/val/test splits go in `data/splits/`.
 
 **`results/`** stores metric outputs and plots produced by notebooks.
+
+---
+
+## Current ALS baseline scope
+
+For the first ALS baseline, use only the Books + Movies user intersection.
+
+Use the prepared Google Drive split CSVs directly with `pd.read_csv`:
+`books_train.csv`, `books_valid.csv`, `books_test.csv`, `movies_train.csv`,
+`movies_valid.csv`, and `movies_test.csv`.
+
+Do not implement or depend on `src/data/preprocess.py` for this ALS stage. The
+prepared split files are assumed to already contain the intersecting users and
+valid train/validation/test splits.
+
+Train one collective ALS model on merged Books and Movies train interactions.
+Create globally unique item IDs with a domain prefix, then filter recommendations
+back to the requested target domain before evaluating top-K metrics.
+MAP@K must be implemented in shared Python code under `src/evaluation/`, not only
+inside the notebook.
 
 ---
 
