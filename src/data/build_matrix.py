@@ -27,8 +27,14 @@ def add_domain_item_ids(df, domain, item_col="parent_asin"):
     return df
 
 
-def build_user_item_matrix(train_df, domains=None, user_col="user_id", item_col="item_id"):
-    """Build shared ALS indexes and a binary implicit user-item matrix.
+def build_user_item_matrix(
+    train_df,
+    domains=None,
+    user_col="user_id",
+    item_col="item_id",
+    value_col=None,
+):
+    """Build shared indexes and a sparse user-item matrix.
 
     Args:
         train_df: Training interactions with user, item_id, and domain columns.
@@ -36,6 +42,8 @@ def build_user_item_matrix(train_df, domains=None, user_col="user_id", item_col=
             recommendations. Defaults to all domains present in train_df.
         user_col: User identifier column.
         item_col: Globally unique item identifier column.
+        value_col: Optional value column. When omitted, every observed
+            interaction receives value 1.0 for implicit-feedback models.
 
     Returns:
         InteractionMatrix containing the sparse train matrix and lookup maps.
@@ -58,7 +66,10 @@ def build_user_item_matrix(train_df, domains=None, user_col="user_id", item_col=
 
     user_indices = train_df[user_col].map(user2idx).to_numpy()
     item_indices = train_df[item_col].map(item2idx).to_numpy()
-    values = np.ones(len(train_df), dtype=np.float32)
+    if value_col is not None:
+        values = train_df[value_col].to_numpy(dtype=np.float32)
+    else:
+        values = np.ones(len(train_df), dtype=np.float32)
 
     user_item_train = csr_matrix(
         (values, (user_indices, item_indices)),
@@ -90,4 +101,32 @@ def build_user_item_matrix(train_df, domains=None, user_col="user_id", item_col=
         item_domain=item_domain,
         train_seen_idx_by_user=train_seen_idx_by_user,
         domain_item_indices=domain_item_indices,
+    )
+
+
+def build_implicit_als_matrix(train_df, domains=None, user_col="user_id", item_col="item_id"):
+    """Build a binary implicit-feedback matrix for ALS."""
+    return build_user_item_matrix(
+        train_df,
+        domains=domains,
+        user_col=user_col,
+        item_col=item_col,
+        value_col=None,
+    )
+
+
+def build_explicit_svd_matrix(
+    train_df,
+    domains=None,
+    user_col="user_id",
+    item_col="item_id",
+    rating_col="rating",
+):
+    """Build a rating-valued sparse matrix for explicit-feedback SVD."""
+    return build_user_item_matrix(
+        train_df,
+        domains=domains,
+        user_col=user_col,
+        item_col=item_col,
+        value_col=rating_col,
     )

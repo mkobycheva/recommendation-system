@@ -2,7 +2,12 @@ import unittest
 
 import pandas as pd
 
-from src.data.build_matrix import add_domain_item_ids, build_user_item_matrix
+from src.data.build_matrix import (
+    add_domain_item_ids,
+    build_explicit_svd_matrix,
+    build_implicit_als_matrix,
+    build_user_item_matrix,
+)
 
 
 class BuildMatrixTest(unittest.TestCase):
@@ -44,6 +49,34 @@ class BuildMatrixTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "domain"):
             build_user_item_matrix(train_df)
+
+    def test_build_implicit_als_matrix_uses_binary_values(self):
+        train_df = pd.DataFrame(
+            {
+                "user_id": ["u1", "u1"],
+                "item_id": ["books::B1", "books::B2"],
+                "domain": ["books", "books"],
+                "rating": [2.0, 5.0],
+            }
+        )
+
+        matrix = build_implicit_als_matrix(train_df)
+
+        self.assertEqual(matrix.user_item_train.data.tolist(), [1.0, 1.0])
+
+    def test_build_explicit_svd_matrix_uses_rating_values(self):
+        train_df = pd.DataFrame(
+            {
+                "user_id": ["u1", "u1"],
+                "item_id": ["books::B1", "books::B2"],
+                "domain": ["books", "books"],
+                "rating": [2.0, 5.0],
+            }
+        )
+
+        matrix = build_explicit_svd_matrix(train_df)
+
+        self.assertEqual(matrix.user_item_train.data.tolist(), [2.0, 5.0])
 
 
 if __name__ == "__main__":
