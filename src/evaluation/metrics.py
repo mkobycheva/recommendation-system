@@ -1,6 +1,7 @@
 """Recommendation metrics shared by notebooks."""
 
 from collections.abc import Mapping
+import numpy as np
 
 
 def ndcg_at_k(recommended, relevant, k=10):
