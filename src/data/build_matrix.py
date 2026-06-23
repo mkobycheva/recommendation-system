@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-
 @dataclass(frozen=True)
 class InteractionMatrix:
     """Shared indexes and sparse train matrix for recommender baselines."""
