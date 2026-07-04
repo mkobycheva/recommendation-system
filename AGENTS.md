@@ -2,9 +2,13 @@
 
 ## What this project is
 
-A cross-domain recommender system for books, movies, and music using the Amazon
+A cross-domain recommender system for books and movies using the Amazon
 Reviews 2023 dataset. The core research question: can a model trained on a user's
 ratings in one domain reliably predict their preferences in another?
+
+The current project scope is limited to two domains only: Books and Movies & TV.
+Do not add a third domain for modeling, preprocessing, evaluation, or notebook work
+unless the project scope is explicitly changed later.
 
 The approach is to establish baselines with simple models, then progressively build
 toward sequential and ensemble methods, evaluating each on cross-domain transfer.
@@ -56,7 +60,7 @@ notebook, extract the reusable parts into `src/`.
 
 **`src/data/`** handles everything before modeling: downloading, cleaning, building
 matrices, splitting. The `overlap_check.py` script must be run first - it verifies
-that enough users exist across multiple domains to make cross-domain transfer viable.
+that enough users exist across Books and Movies to make cross-domain transfer viable.
 
 **`src/evaluation/`** contains shared metric functions used by every notebook.
 Write this before training any model. Primary metrics are NDCG@10 and Recall@10.
@@ -98,7 +102,7 @@ inside the notebook.
 
 Source: Amazon Reviews 2023 - https://amazon-reviews-2023.github.io
 
-Domains used: Books, Movies & TV, CDs & Vinyl.
+Domains used: Books, Movies & TV.
 
 Key rules:
 - Use `parent_asin` as the item identifier, not `asin`.
@@ -131,7 +135,6 @@ os.makedirs('/content/drive/MyDrive/recsys-data/raw', exist_ok=True)
 
 !wget -q https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
 !wget -q https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Movies_and_TV.jsonl.gz
-!wget -q https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/CDs_and_Vinyl.jsonl.gz
 ```
 
 Then share the `recsys-data/` folder with all teammates via Google Drive.
@@ -174,8 +177,8 @@ from src.evaluation.metrics import ndcg_at_k
 
 Work through these in sequence. Each step unblocks the next.
 
-1. **`src/data/overlap_check.py`** - load all three domains, find users appearing
-   in 2+ domains, report count. If overlap is below ~10k users, revisit sampling.
+1. **`src/data/overlap_check.py`** - load Books and Movies, find users appearing
+   in both domains, report count. If overlap is below ~10k users, revisit sampling.
 
 2. **`src/data/preprocess.py` + `build_matrix.py`** - clean ratings, build sparse
    user-item matrices per domain, apply 5-core filtering.
@@ -209,6 +212,8 @@ Work through these in sequence. Each step unblocks the next.
   `notebook/eda`, `feature/evaluation-metrics`.
 - Every merge goes through a pull request reviewed by at least one teammate.
 - Clear notebook outputs before every commit.
+- Before committing, show the user the code changes and the result of running
+  the relevant code/tests.
 - `data/` is in `.gitignore`. Never commit dataset files.
 
 ---
