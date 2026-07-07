@@ -26,10 +26,11 @@ class BuildMatrixTest(unittest.TestCase):
                 "user_id": ["u1", "u1", "u2"],
                 "item_id": ["books::B1", "movies::M1", "books::B2"],
                 "domain": ["books", "movies", "books"],
+                "rating": [4.0, 5.0, 3.0],
             }
         )
 
-        matrix = build_user_item_matrix(train_df, domains=["books", "movies"])
+        matrix = build_user_item_matrix(train_df)
 
         self.assertEqual(matrix.user_item_train.shape, (2, 3))
         self.assertEqual(matrix.user_item_train.nnz, 3)
@@ -50,7 +51,7 @@ class BuildMatrixTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "domain"):
             build_user_item_matrix(train_df)
 
-    def test_build_implicit_als_matrix_uses_binary_values(self):
+    def test_build_implicit_als_matrix_uses_raw_rating_values(self):
         train_df = pd.DataFrame(
             {
                 "user_id": ["u1", "u1"],
@@ -62,7 +63,7 @@ class BuildMatrixTest(unittest.TestCase):
 
         matrix = build_implicit_als_matrix(train_df)
 
-        self.assertEqual(matrix.user_item_train.data.tolist(), [1.0, 1.0])
+        self.assertEqual(matrix.user_item_train.data.tolist(), [2.0, 5.0])
 
     def test_build_explicit_svd_matrix_uses_rating_values(self):
         train_df = pd.DataFrame(
@@ -71,12 +72,43 @@ class BuildMatrixTest(unittest.TestCase):
                 "item_id": ["books::B1", "books::B2"],
                 "domain": ["books", "books"],
                 "rating": [2.0, 5.0],
+                "timestamp": [10, 20],
             }
         )
 
         matrix = build_explicit_svd_matrix(train_df)
 
         self.assertEqual(matrix.user_item_train.data.tolist(), [2.0, 5.0])
+
+    def test_implicit_mode_keeps_highest_rating_for_duplicate_user_item(self):
+        train_df = pd.DataFrame(
+            {
+                "user_id": ["u1", "u1"],
+                "item_id": ["books::B1", "books::B1"],
+                "domain": ["books", "books"],
+                "rating": [2.0, 5.0],
+                "timestamp": [20, 10],
+            }
+        )
+
+        matrix = build_implicit_als_matrix(train_df)
+
+        self.assertEqual(matrix.user_item_train.data.tolist(), [5.0])
+
+    def test_explicit_mode_keeps_latest_rating_for_duplicate_user_item(self):
+        train_df = pd.DataFrame(
+            {
+                "user_id": ["u1", "u1"],
+                "item_id": ["books::B1", "books::B1"],
+                "domain": ["books", "books"],
+                "rating": [5.0, 2.0],
+                "timestamp": [10, 20],
+            }
+        )
+
+        matrix = build_explicit_svd_matrix(train_df)
+
+        self.assertEqual(matrix.user_item_train.data.tolist(), [2.0])
 
 
 if __name__ == "__main__":

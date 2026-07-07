@@ -21,7 +21,6 @@ BASE_URL = (
 DOMAINS = {
     "Books": "Books.train.csv.gz",
     "Movies": "Movies_and_TV.train.csv.gz",
-    "CDs": "CDs_and_Vinyl.train.csv.gz",
 }
 
 CHUNKSIZE = 500_000
@@ -91,14 +90,6 @@ def main() -> None:
         overlap_count = len(users_by_domain[left] & users_by_domain[right])
         domain_sizes = [len(users_by_domain[left]), len(users_by_domain[right])]
         print_overlap(f"{left} ∩ {right}", overlap_count, domain_sizes)
-
-    print("\nThree-way overlap:")
-    domain_names = list(DOMAINS)
-    three_way_overlap = set.intersection(
-        *(users_by_domain[domain] for domain in domain_names)
-    )
-    domain_sizes = [len(users_by_domain[domain]) for domain in domain_names]
-    print_overlap("Books ∩ Movies ∩ CDs", len(three_way_overlap), domain_sizes)
 
 
 if __name__ == "__main__":
