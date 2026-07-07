@@ -5,4 +5,11 @@ implicit==0.7.3
 gensim==4.3.3
 scikit-learn==1.5.2
 torch==2.4.1
+torchvision==0.19.1
+torchaudio==2.4.1
+lightning==2.4.0
+pytorch-lightning==2.4.0
+torchmetrics==1.4.2
+fsspec==2025.3.0
+requests==2.32.4
 wandb==0.18.3
