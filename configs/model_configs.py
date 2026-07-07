@@ -5,7 +5,14 @@ SVD_CONFIG = {
     "k": 10,
     "batch_size": 512,
 }
-ALS_CONFIG = {}
+ALS_CONFIG = {
+    "factors": 128,
+    "regularization": 0.05,
+    "iterations": 20,
+    "alpha": 15,
+    "k": 10,
+    "random_state": 42,
+}
 ITEM2VEC_CONFIG = {
     "vector_size": 128,
     "window": 5,
