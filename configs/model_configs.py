@@ -12,7 +12,17 @@ ITEM2VEC_CONFIG = {
     "k": 10,
     "batch_size": 5000,
 }
-LSTM_CONFIG = {}
+LSTM_CONFIG = {
+    "embedding_dim": 64,
+    "hidden_dim": 128,
+    "max_len": 10,
+    "batch_size": 512,
+    "lr": 0.001,
+    "weight_decay": 1e-5,
+    "dropout": 0.2,
+    "epochs": 5,
+    "k": 10,
+}
 SASREC_CONFIG = {}
 BERT4REC_CONFIG = {}
 ENSEMBLE_CONFIG = {}
