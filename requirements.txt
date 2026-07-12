@@ -1,4 +1,15 @@
 pandas==2.2.2
-numpy==2.0.2
-scipy==1.16.3
+numpy>=2.0
+scipy==1.13.1
 implicit==0.7.3
+gensim==4.4.0
+scikit-learn==1.5.2
+fsspec==2025.3.0
+requests==2.32.4
+
+# torch, torchvision, torchaudio, lightning, pytorch-lightning, torchmetrics,
+# wandb are intentionally NOT pinned here: Colab ships a curated, GPU/CUDA-matched
+# set of these already, and forcing old pins via `pip install -r requirements.txt`
+# fights that (downgrade conflicts, needing a runtime restart, wandb API
+# mismatches from a stale SDK). Use whatever Colab provides; `!pip install -U wandb -q`
+# inline in a notebook cell if a specific fix is needed.
