@@ -3,12 +3,17 @@ import json
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 from fastapi.testclient import TestClient
 from gensim.models import Word2Vec
+
+from app.recommenders.sequential import BERT4RecModel, SASRecModel
 
 BOOK_ITEMS = [f"books::b{i}" for i in range(6)]
 MOVIE_ITEMS = [f"movies::m{i}" for i in range(6)]
 ALL_ITEMS = BOOK_ITEMS + MOVIE_ITEMS
+NUM_ITEMS = len(ALL_ITEMS) + 1  # +1 for padding
+MAX_LEN = 8
 
 
 def _write_fold_in_artifacts(model_dir, seed):
@@ -38,6 +43,42 @@ def _write_item2vec_artifacts(model_dir):
     (model_dir / "domain_item_indices.json").write_text(json.dumps(domain_item_indices))
 
 
+def _write_sequential_common(model_dir, model, config):
+    torch.save(model.state_dict(), model_dir / "model_state_dict.pt")
+    item2idx = {item_id: idx + 1 for idx, item_id in enumerate(ALL_ITEMS)}  # 0 = padding
+    (model_dir / "item2idx.json").write_text(json.dumps(item2idx))
+    domain_item_indices = {
+        "books": [item2idx[item_id] for item_id in BOOK_ITEMS],
+        "movies": [item2idx[item_id] for item_id in MOVIE_ITEMS],
+    }
+    (model_dir / "domain_item_indices.json").write_text(json.dumps(domain_item_indices))
+    (model_dir / "config.json").write_text(json.dumps(config))
+
+
+def _write_sasrec_artifacts(model_dir):
+    model_dir.mkdir(parents=True)
+    torch.manual_seed(4)
+    model = SASRecModel(num_items=NUM_ITEMS, max_len=MAX_LEN, d_model=8, n_heads=2, n_layers=1, dropout=0.0)
+    _write_sequential_common(model_dir, model, {
+        "num_items": NUM_ITEMS, "max_len": MAX_LEN,
+        "d_model": 8, "n_heads": 2, "n_layers": 1, "dropout": 0.0,
+    })
+
+
+def _write_bert4rec_artifacts(model_dir):
+    model_dir.mkdir(parents=True)
+    torch.manual_seed(5)
+    mask_token = NUM_ITEMS
+    model = BERT4RecModel(
+        num_items=NUM_ITEMS, mask_token=mask_token, max_len=MAX_LEN,
+        d_model=8, n_heads=2, n_layers=1, dropout=0.0,
+    )
+    _write_sequential_common(model_dir, model, {
+        "num_items": NUM_ITEMS, "max_len": MAX_LEN, "mask_token": mask_token,
+        "d_model": 8, "n_heads": 2, "n_layers": 1, "dropout": 0.0,
+    })
+
+
 def _write_items_metadata(artifacts_dir):
     rows = []
     for item_id in ALL_ITEMS:
@@ -56,6 +97,8 @@ def artifacts_dir(tmp_path):
     _write_fold_in_artifacts(tmp_path / "svd", seed=1)
     _write_fold_in_artifacts(tmp_path / "als", seed=2)
     _write_item2vec_artifacts(tmp_path / "item2vec")
+    _write_sasrec_artifacts(tmp_path / "sasrec")
+    _write_bert4rec_artifacts(tmp_path / "bert4rec")
     _write_items_metadata(tmp_path)
     return tmp_path
 
@@ -84,7 +127,7 @@ def test_search_unknown_domain_is_rejected(client):
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize("model_name", ["svd", "als", "item2vec"])
+@pytest.mark.parametrize("model_name", ["svd", "als", "item2vec", "sasrec", "bert4rec"])
 def test_recommend_returns_correct_shape(client, model_name):
     response = client.post(
         "/recommend",
@@ -124,7 +167,7 @@ def test_recommend_unknown_model_is_rejected(client):
         json={
             "selected_items": ["books::b0"],
             "target_domain": "movies",
-            "model": "bert4rec",
+            "model": "lstm",
             "k": 5,
         },
     )

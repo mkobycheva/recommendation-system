@@ -10,12 +10,15 @@ from rapidfuzz import fuzz, process
 
 from app.config import get_items_metadata_path, get_model_dir
 from app.recommenders.item2vec import Item2VecRecommender
+from app.recommenders.sequential import BERT4RecRecommender, SASRecRecommender
 from app.recommenders.svd_als import FoldInRecommender
 
 MODEL_LOADERS = {
     "svd": FoldInRecommender.load,
     "als": FoldInRecommender.load,
     "item2vec": Item2VecRecommender.load,
+    "sasrec": SASRecRecommender.load,
+    "bert4rec": BERT4RecRecommender.load,
 }
 
 
@@ -29,7 +32,7 @@ class ItemOut(BaseModel):
 class RecommendRequest(BaseModel):
     selected_items: list[str]
     target_domain: str
-    model: Literal["svd", "als", "item2vec"]
+    model: Literal["svd", "als", "item2vec", "sasrec", "bert4rec"]
     k: int = 10
 
 
@@ -49,7 +52,7 @@ async def lifespan(app: FastAPI):
         if not model_dir.exists():
             raise FileNotFoundError(
                 f"Artifacts for model {model_name!r} not found at {model_dir}. "
-                "Set ARTIFACTS_DIR to a directory containing svd/als/item2vec subfolders."
+                "Set ARTIFACTS_DIR to a directory containing svd/als/item2vec/sasrec/bert4rec subfolders."
             )
         recommenders[model_name] = load(model_dir)
     app.state.recommenders = recommenders

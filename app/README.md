@@ -1,11 +1,16 @@
-# MVP app (SVD + ALS + item2vec, Gradio)
+# MVP app (SVD + ALS + item2vec + SASRec + BERT4Rec, Gradio)
 
 FastAPI backend + Gradio frontend for cold-start cross-domain recommendations
 (books + movies). See [../notebooks/00_export_metadata.ipynb](../notebooks/00_export_metadata.ipynb)
 for how `items_metadata.parquet` is produced in Colab, and the export cells at
-the end of the `svd`/`als`/`item-2-vec` branch notebooks for how each model's
-artifacts (`item_factors.npy`/`item2idx.json`/`domain_item_indices.json`, or
-`word2vec.model`/`domain_item_indices.json`) are produced.
+the end of the `svd`/`als`/`item-2-vec`/`transformer` branch notebooks for how
+each model's artifacts are produced:
+`item_factors.npy`/`item2idx.json`/`domain_item_indices.json` (svd, als),
+`word2vec.model`/`domain_item_indices.json` (item2vec), or
+`model_state_dict.pt`/`item2idx.json`/`domain_item_indices.json`/`config.json`
+(sasrec, bert4rec). SASRec/BERT4Rec cold-start treats the cart as a
+pseudo-sequence in selection order -- there's no real timestamp for a new
+user's cart, so this is an approximation, not the training-time sequence.
 
 ## Install
 
@@ -16,7 +21,8 @@ pip install -r app/requirements.txt
 ## Run locally on synthetic data (no real artifacts needed)
 
 Generate a small synthetic `ARTIFACTS_DIR` (10 books + 10 movies, random
-factors / a tiny trained item2vec model, toy titles):
+factors / a tiny trained item2vec model / untrained tiny SASRec+BERT4Rec,
+toy titles):
 
 ```bash
 python -m app.scripts.make_synthetic_artifacts ./artifacts
@@ -49,6 +55,8 @@ below), it never imports `app.recommenders` directly.
     svd/item_factors.npy, item2idx.json, domain_item_indices.json
     als/item_factors.npy, item2idx.json, domain_item_indices.json
     item2vec/word2vec.model, domain_item_indices.json
+    sasrec/model_state_dict.pt, item2idx.json, domain_item_indices.json, config.json
+    bert4rec/model_state_dict.pt, item2idx.json, domain_item_indices.json, config.json
   ```
 - `ITEMS_METADATA_PATH` -- only needed if `items_metadata.parquet` doesn't
   live directly under `ARTIFACTS_DIR` (defaults to `ARTIFACTS_DIR/items_metadata.parquet`).
@@ -60,7 +68,7 @@ files are missing, with the exact path it looked for.
 ## Tests
 
 ```bash
-pytest tests/test_recommenders.py tests/test_api.py -v
+pytest tests/test_recommenders.py tests/test_sequential_recommenders.py tests/test_api.py -v
 ```
 
 Both use in-memory / `tmp_path` synthetic fixtures -- no real dataset or
@@ -74,3 +82,5 @@ Colab artifacts required.
 - Recommendation cards render as Markdown, not `gr.Gallery` -- `image_url`
   is `None` for most items until real metadata with images is exported
   (see Task 1 notebook).
+- SASRec/BERT4Rec cold-start uses cart selection order as a stand-in for a
+  real interaction sequence -- reordering the same cart can change results.

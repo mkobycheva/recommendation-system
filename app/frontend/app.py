@@ -9,7 +9,7 @@ import gradio as gr
 import requests
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
-MODEL_CHOICES = ["svd", "als", "item2vec"]
+MODEL_CHOICES = ["svd", "als", "item2vec", "sasrec", "bert4rec"]
 DOMAIN_CHOICES = ["books", "movies"]
 
 
