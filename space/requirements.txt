@@ -1,0 +1,9 @@
+gradio
+rapidfuzz
+gensim
+scipy
+numpy
+pandas
+pyarrow
+torch
+huggingface_hub
