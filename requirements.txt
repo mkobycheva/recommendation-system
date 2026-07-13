@@ -1,15 +1,11 @@
 pandas==2.2.2
-numpy==1.26.4
-scipy==1.13.1
-implicit==0.7.3
-gensim==4.3.3
-scikit-learn==1.5.2
-torch==2.4.1
-torchvision==0.19.1
-torchaudio==2.4.1
-lightning==2.4.0
-pytorch-lightning==2.4.0
-torchmetrics==1.4.2
+numpy>=2.0
 fsspec==2025.3.0
 requests==2.32.4
-wandb==0.18.3
+
+# scikit-learn, scipy, implicit, gensim, torch, torchvision, torchaudio,
+# lightning, pytorch-lightning, torchmetrics, wandb are intentionally NOT
+# pinned/listed here: this notebook only needs pandas/numpy/torch/sklearn's
+# LabelEncoder — implicit/gensim/scipy aren't used at all, and pinning
+# scikit-learn fights Colab's own bundled packages (umap-learn, hdbscan,
+# tsfresh, access all want scikit-learn>=1.6/scipy>=1.14 already).
