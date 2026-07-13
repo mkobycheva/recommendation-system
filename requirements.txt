@@ -1,9 +1,13 @@
 pandas==2.2.2
-numpy>=2.0
+numpy>=2.0,<2.1
 gensim==4.4.0
 fsspec==2025.3.0
 requests==2.32.4
 
+# numpy is capped at <2.1 because Colab's bundled numba 0.60.0 requires
+# numpy<2.1,>=1.22 -- an open-ended >=2.0 lets pip pick the newest 2.x
+# (2.2.x at time of writing) and breaks numba, which we don't control.
+#
 # scipy, implicit, scikit-learn, torch, torchvision, torchaudio, lightning,
 # pytorch-lightning, torchmetrics, wandb are intentionally not pinned/listed:
 # the only notebook on this branch that installs from this file
