@@ -1,15 +1,16 @@
 pandas==2.2.2
 numpy>=2.0
 gensim==4.4.0
+fsspec==2025.3.0
+requests==2.32.4
 
-# scipy, implicit, scikit-learn, fsspec, requests, torch, torchvision,
-# torchaudio, lightning, pytorch-lightning, torchmetrics, wandb are
-# intentionally not pinned/listed: the only notebook on this branch that
-# installs from this file (00_export_metadata.ipynb) only needs pandas and
-# gensim's Word2Vec.load (`datasets` is installed separately in that
-# notebook's setup cell). Every other inherited notebook here (00_eda,
-# 01_baselines, 02_item2vec) checks out its own branch -- with its own
-# requirements.txt -- before installing, so it never reads this file.
-# Pinning packages nothing here imports just adds conflict surface against
-# whatever Colab already provides. The FastAPI/Gradio app itself uses
-# app/requirements.txt, not this file.
+# scipy, implicit, scikit-learn, torch, torchvision, torchaudio, lightning,
+# pytorch-lightning, torchmetrics, wandb are intentionally not pinned/listed:
+# the only notebook on this branch that installs from this file
+# (00_export_metadata.ipynb) needs pandas and gensim's Word2Vec.load
+# (`datasets` is installed separately in that notebook's setup cell). Every
+# other inherited notebook here (00_eda, 01_baselines, 02_item2vec) checks
+# out its own branch -- with its own requirements.txt -- before installing,
+# so it never reads this file. Pinning packages nothing here imports just
+# adds conflict surface against whatever Colab already provides. The
+# FastAPI/Gradio app itself uses app/requirements.txt, not this file.
