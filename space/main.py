@@ -24,6 +24,16 @@ ARTIFACTS_REPO = os.environ.get("ARTIFACTS_REPO", "<your-hf-username>/recsys-art
 MODEL_CHOICES = ["svd", "als", "item2vec", "sasrec", "bert4rec"]
 DOMAIN_CHOICES = ["books", "movies"]
 
+# Shown in place of a cover when items_metadata has no image_url for an item
+# -- avoids depending on an external placeholder service at request time.
+NO_IMAGE_PLACEHOLDER = (
+    "data:image/svg+xml,"
+    "%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='300'%3E"
+    "%3Crect width='200' height='300' fill='%23ddd'/%3E"
+    "%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23888' "
+    "font-size='16' font-family='sans-serif'%3Eno image%3C/text%3E%3C/svg%3E"
+)
+
 MODEL_LOADERS = {
     "svd": FoldInRecommender.load,
     "als": FoldInRecommender.load,
@@ -38,9 +48,14 @@ recommenders = {name: load(f"{artifacts_dir}/{name}") for name, load in MODEL_LO
 
 
 def _items_to_records(item_ids: list[str]) -> list[dict]:
-    results = items_metadata.set_index("item_id").reindex(item_ids).dropna(subset=["title"])
+    results = items_metadata.set_index("item_id").reindex(item_ids).dropna(subset=["domain"])
     results = results.reset_index()
+    results["title"] = results["title"].replace("", pd.NA).fillna(results["item_id"])
     return results[["item_id", "title", "domain", "image_url"]].to_dict("records")
+
+
+def _to_gallery(records: list[dict]) -> list[tuple[str, str]]:
+    return [(r["image_url"] or NO_IMAGE_PLACEHOLDER, f"[{r['domain']}] {r['title']}") for r in records]
 
 
 def search(q: str, domain: str) -> list[dict]:
@@ -69,11 +84,16 @@ def recommend(selected_items: list[str], target_domain: str, model_name: str, k:
 
 def do_search(query, domain):
     if not query:
-        return [], gr.update(choices=[], value=None)
+        return [], gr.update(value=[])
 
     results = search(query, domain)
-    choices = [(f"[{item['domain']}] {item['title']}", item["item_id"]) for item in results]
-    return results, gr.update(choices=choices, value=None)
+    return results, gr.update(value=_to_gallery(results))
+
+
+def on_search_select(evt: gr.SelectData, search_results):
+    if search_results and evt.index < len(search_results):
+        return search_results[evt.index]["item_id"]
+    return None
 
 
 def add_to_cart(selected_item_id, search_results, cart):
@@ -99,13 +119,15 @@ def remove_from_cart(to_remove, cart):
 def _call_recommend(cart, target_domain, model_name, k):
     item_ids = list((cart or {}).keys())
     if not item_ids:
-        return "Кошик порожній — додай хоча б один тайтл перед рекомендацією."
+        gr.Warning("Кошик порожній — додай хоча б один тайтл перед рекомендацією.")
+        return []
 
     results = recommend(item_ids, target_domain, model_name, k=int(k))
     if not results:
-        return "Рекомендацій не знайдено (можливо, жоден обраний тайтл не відомий цій моделі)."
+        gr.Warning("Рекомендацій не знайдено (можливо, жоден обраний тайтл не відомий цій моделі).")
+        return []
 
-    return "\n".join(f"- **{item['title']}** ({item['domain']})" for item in results)
+    return _to_gallery(results)
 
 
 def get_recommendations(cart, target_domain, model_name, k):
@@ -122,6 +144,7 @@ def compare_recommendations(cart, target_domain, model_a, model_b, k):
 with gr.Blocks(title="Cross-domain Recommender") as demo:
     cart_state = gr.State({})
     search_results_state = gr.State([])
+    search_selected_state = gr.State(None)
 
     gr.Markdown("# Крос-доменні рекомендації (books + movies)")
 
@@ -131,7 +154,13 @@ with gr.Blocks(title="Cross-domain Recommender") as demo:
             search_domain = gr.Radio(DOMAIN_CHOICES, value="books", label="Домен пошуку")
             search_box = gr.Textbox(label="Назва")
             search_button = gr.Button("Шукати")
-            search_radio = gr.Radio(choices=[], label="Результати пошуку")
+            search_gallery = gr.Gallery(
+                label="Результати пошуку (клікни, щоб обрати)",
+                columns=5,
+                height=260,
+                object_fit="contain",
+                allow_preview=False,
+            )
             add_button = gr.Button("Додати в кошик")
             cart_checkboxgroup = gr.CheckboxGroup(choices=[], label="Кошик (познач, щоб видалити)")
             remove_button = gr.Button("Видалити позначене")
@@ -144,22 +173,29 @@ with gr.Blocks(title="Cross-domain Recommender") as demo:
             with gr.Tab("Рекомендувати"):
                 model_dropdown = gr.Dropdown(MODEL_CHOICES, value="svd", label="Модель")
                 recommend_button = gr.Button("Рекомендувати")
-                recommend_output = gr.Markdown()
+                recommend_gallery = gr.Gallery(columns=5, height=260, object_fit="contain", allow_preview=False)
 
             with gr.Tab("Порівняти"):
                 model_a_dropdown = gr.Dropdown(MODEL_CHOICES, value="svd", label="Модель A")
                 model_b_dropdown = gr.Dropdown(MODEL_CHOICES, value="als", label="Модель B")
                 compare_button = gr.Button("Порівняти")
                 with gr.Row():
-                    compare_output_a = gr.Markdown()
-                    compare_output_b = gr.Markdown()
+                    compare_gallery_a = gr.Gallery(
+                        label="Модель A", columns=3, height=260, object_fit="contain", allow_preview=False
+                    )
+                    compare_gallery_b = gr.Gallery(
+                        label="Модель B", columns=3, height=260, object_fit="contain", allow_preview=False
+                    )
 
     search_button.click(
-        do_search, inputs=[search_box, search_domain], outputs=[search_results_state, search_radio]
+        do_search, inputs=[search_box, search_domain], outputs=[search_results_state, search_gallery]
+    )
+    search_gallery.select(
+        on_search_select, inputs=[search_results_state], outputs=[search_selected_state]
     )
     add_button.click(
         add_to_cart,
-        inputs=[search_radio, search_results_state, cart_state],
+        inputs=[search_selected_state, search_results_state, cart_state],
         outputs=[cart_state, cart_checkboxgroup],
     )
     remove_button.click(
@@ -168,12 +204,12 @@ with gr.Blocks(title="Cross-domain Recommender") as demo:
     recommend_button.click(
         get_recommendations,
         inputs=[cart_state, target_domain, model_dropdown, k_slider],
-        outputs=[recommend_output],
+        outputs=[recommend_gallery],
     )
     compare_button.click(
         compare_recommendations,
         inputs=[cart_state, target_domain, model_a_dropdown, model_b_dropdown, k_slider],
-        outputs=[compare_output_a, compare_output_b],
+        outputs=[compare_gallery_a, compare_gallery_b],
     )
 
 
@@ -181,4 +217,4 @@ if __name__ == "__main__":
     # HF Spaces doesn't set PORT and is fine with the default bind; Cloud Run
     # (and most container hosts) require listening on 0.0.0.0:$PORT.
     port = int(os.environ.get("PORT", 7860))
-    demo.launch(server_name="0.0.0.0", server_port=port)
+    demo.launch(server_name="0.0.0.0", server_port=port, theme=gr.themes.Soft())
