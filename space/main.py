@@ -51,6 +51,10 @@ def _items_to_records(item_ids: list[str]) -> list[dict]:
     results = items_metadata.set_index("item_id").reindex(item_ids).dropna(subset=["domain"])
     results = results.reset_index()
     results["title"] = results["title"].replace("", pd.NA).fillna(results["item_id"])
+    # image_url is missing as NaN (float), not None, for items without a cover --
+    # NaN is truthy in Python, so downstream "image_url or placeholder" checks need
+    # a real None here to fall back correctly.
+    results["image_url"] = results["image_url"].apply(lambda v: v if isinstance(v, str) and v else None)
     return results[["item_id", "title", "domain", "image_url"]].to_dict("records")
 
 

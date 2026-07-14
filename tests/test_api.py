@@ -87,7 +87,9 @@ def _write_items_metadata(artifacts_dir):
             "item_id": item_id,
             "domain": domain,
             "title": f"Synthetic title for {asin}",
-            "image_url": None,
+            # Real scraped metadata stores a missing cover as NaN (float), not
+            # None -- mix both here so tests catch the "NaN is truthy" bug.
+            "image_url": float("nan") if item_id == "books::b0" else None,
         })
     pd.DataFrame(rows).to_parquet(artifacts_dir / "items_metadata.parquet", index=False)
 
@@ -119,6 +121,15 @@ def test_search_finds_known_title(client):
     assert response.status_code == 200
     results = response.json()
     assert any(item["item_id"] == "books::b0" for item in results)
+
+
+def test_missing_image_url_is_returned_as_null_not_nan(client):
+    response = client.get("/search", params={"q": "b0", "domain": "books"})
+
+    assert response.status_code == 200
+    results = response.json()
+    match = next(item for item in results if item["item_id"] == "books::b0")
+    assert match["image_url"] is None
 
 
 def test_search_unknown_domain_is_rejected(client):
