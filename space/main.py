@@ -178,4 +178,7 @@ with gr.Blocks(title="Cross-domain Recommender") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch()
+    # HF Spaces doesn't set PORT and is fine with the default bind; Cloud Run
+    # (and most container hosts) require listening on 0.0.0.0:$PORT.
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(server_name="0.0.0.0", server_port=port)

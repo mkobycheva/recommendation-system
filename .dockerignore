@@ -1,0 +1,12 @@
+.git
+.idea
+.pytest_cache
+__pycache__
+*.pyc
+data/
+notebooks/
+results/
+tests/
+docs/
+*.ipynb
+.DS_Store
