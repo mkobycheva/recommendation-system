@@ -124,7 +124,7 @@ with gr.Blocks(title="Cross-domain Recommender MVP") as demo:
     cart_state = gr.State({})
     search_results_state = gr.State([])
 
-    gr.Markdown("# Крос-доменні рекомендації (books + movies)")
+    gr.Markdown("# Книго-фільмо-чаклун ")
 
     with gr.Row():
         with gr.Column():
