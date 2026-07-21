@@ -13,6 +13,19 @@ unless the project scope is explicitly changed later.
 The approach is to establish baselines with simple models, then progressively build
 toward sequential and ensemble methods, evaluating each on cross-domain transfer.
 
+## Current status
+
+SVD, ALS, item2vec, SASRec, and BERT4Rec are all trained (each on its own
+branch: `svd`, `als`, `item-2-vec`, `transformer`) and evaluated with shared
+NDCG@10/Recall@10/MAP@5 metrics plus Top-Popular/Random baselines. Ensemble
+(`04_ensemble.ipynb`) has not been done yet.
+
+On top of that, this `app` branch adds an MVP web app (FastAPI + Gradio) that
+serves cold-start cross-domain recommendations from all five trained models,
+and it is deployed publicly on Google Cloud Run. See "MVP web app &
+deployment" below before touching `app/`, `space/`, `Dockerfile`, or
+`DEPLOY.md`.
+
 ---
 
 ## Project structure
@@ -24,11 +37,13 @@ recommender-system/
 │   ├── processed/
 │   └── splits/
 ├── notebooks/
-│   ├── 00_eda.ipynb           <- exploratory data analysis
-│   ├── 01_baselines.ipynb     <- SVD and ALS
+│   ├── 00_eda.ipynb            <- exploratory data analysis
+│   ├── 00_export_metadata.ipynb  <- exports items_metadata.parquet + publishes
+│   │                               all model artifacts to a public HF Dataset repo
+│   ├── 01_baselines.ipynb      <- SVD and ALS (see also 01_1_svd.ipynb)
 │   ├── 02_item2vec.ipynb
-│   ├── 03_sequential.ipynb    <- LSTM, SASRec, BERT4Rec
-│   └── 04_ensemble.ipynb
+│   ├── 03_sequential.ipynb     <- LSTM, SASRec, BERT4Rec
+│   └── 04_ensemble.ipynb       <- not done yet
 ├── src/
 │   ├── data/
 │   │   ├── overlap_check.py   <- run this first
@@ -41,7 +56,17 @@ recommender-system/
 ├── configs/
 │   └── model_configs.py       <- all hyperparameters as Python dicts
 ├── results/
-├── requirements.txt
+├── app/                        <- MVP web app (FastAPI + Gradio), see app/README.md
+│   ├── recommenders/           <- cold-start inference wrappers, one per model
+│   ├── api/main.py             <- FastAPI backend (/search, /recommend)
+│   ├── frontend/app.py         <- Gradio UI, talks to the backend over HTTP
+│   └── scripts/make_synthetic_artifacts.py  <- fake artifacts for local dev
+├── space/                      <- single-process Gradio entry point for deployment
+│   └── main.py                 <- what Dockerfile/Cloud Run actually run
+├── tests/                       <- pytest; covers src/, app/recommenders/, app/api/
+├── Dockerfile, .dockerignore    <- Cloud Run image, builds space/main.py
+├── DEPLOY.md                    <- gcloud run deploy instructions
+├── requirements.txt              <- for notebooks (Colab); app/ has its own
 └── README.md
 ```
 
@@ -64,8 +89,8 @@ that enough users exist across Books and Movies to make cross-domain transfer vi
 
 **`src/evaluation/`** contains shared metric functions used by every notebook.
 Write this before training any model. Primary metrics are NDCG@10 and Recall@10.
-Secondary metrics are Precision@10 and RMSE.
-MAP@K must be implemented here as shared Python code, not only inside a notebook.
+Secondary metrics are Precision@10 and RMSE. MAP@K is implemented here
+(`map_at_k` in `metrics.py`) as shared Python code, not only inside a notebook.
 
 **`configs/model_configs.py`** stores all hyperparameters as plain Python dicts.
 Never hardcode hyperparameters inside a notebook. Import them from here instead.
@@ -78,7 +103,37 @@ Train/val/test splits go in `data/splits/`.
 
 ---
 
+## MVP web app & deployment
+
+`app/` is a working FastAPI + Gradio app, separate from the notebook/`src/`
+research pipeline above. It serves cold-start cross-domain recommendations
+(a cart of items the model never trained on, folded into each model's
+embedding space) from all five trained models. See
+[app/README.md](app/README.md) for how to run it locally against synthetic
+or real artifacts.
+
+`space/main.py` is a second, single-process entry point for deployment
+(container hosts / HF Spaces expect one process, not the FastAPI+Gradio
+split `app/` uses locally) — it re-imports `app/recommenders/` directly and
+duplicates `app/frontend/app.py`'s UI. When changing recommendation or UI
+logic, update both `app/` and `space/main.py` together; nothing enforces
+they stay in sync automatically.
+
+Model artifacts (~4GB) are not committed to git. `00_export_metadata.ipynb`
+publishes them, plus `items_metadata.parquet`, to a public Hugging Face
+Dataset repo; `space/main.py` downloads them at container startup via
+`ARTIFACTS_REPO`/`snapshot_download`.
+
+Deployed on Google Cloud Run — see [DEPLOY.md](DEPLOY.md) for the `gcloud`
+commands, current flags (`--min-instances 0`, `--memory 8Gi`, `--cpu-boost`,
+a long `--startup-probe`), and the reasoning behind each one.
+
+---
+
 ## Current ALS baseline scope
+
+Completed — kept here as a record of the constraints the trained `als`
+branch model was built under, in case it needs to be reproduced or retrained.
 
 For the first ALS baseline, use only the Books + Movies user intersection.
 
@@ -175,7 +230,8 @@ from src.evaluation.metrics import ndcg_at_k
 
 ## Development order
 
-Work through these in sequence. Each step unblocks the next.
+Steps 1-8 are done. Each is kept here as a record of what unblocked the
+next step, in case any stage needs to be reproduced or redone.
 
 1. **`src/data/overlap_check.py`** - load Books and Movies, find users appearing
    in both domains, report count. If overlap is below ~10k users, revisit sampling.
@@ -192,16 +248,22 @@ Work through these in sequence. Each step unblocks the next.
    activity, item popularity, overlap counts, sparsity per domain.
 
 6. **`notebooks/01_baselines.ipynb`** - SVD and ALS. Use `scipy` or `surprise`.
-   Establish numbers to beat before moving to anything more complex.
+   Establish numbers to beat before moving to anything more complex. Done, on
+   the `svd`/`als` branches.
 
 7. **`notebooks/02_item2vec.ipynb`** - embedding-based model. Compare against
-   baselines, especially on long-tail items.
+   baselines, especially on long-tail items. Done, on the `item-2-vec` branch.
 
 8. **`notebooks/03_sequential.ipynb`** - LSTM, then SASRec, then BERT4Rec.
    Read the BERT4Rec paper and Attention Is All You Need before implementing.
+   SASRec and BERT4Rec done, on the `transformer` branch; LSTM not yet trained.
 
 9. **`notebooks/04_ensemble.ipynb`** - combine best models. Requires all previous
-   notebooks to have stable, evaluated results.
+   notebooks to have stable, evaluated results. Not started.
+
+Separately, and not part of this sequence: the `app` branch built an MVP web
+app serving all five already-trained models and deployed it — see "MVP web
+app & deployment" above.
 
 ---
 
@@ -215,6 +277,14 @@ Work through these in sequence. Each step unblocks the next.
 - Before committing, show the user the code changes and the result of running
   the relevant code/tests.
 - `data/` is in `.gitignore`. Never commit dataset files.
+
+In practice, day-to-day work on the `app` branch (the MVP app + deployment)
+commits directly to that branch rather than going through a feature
+branch/PR per change — the user reviews and approves each diff in
+conversation before every commit, and separately before every push. Apply
+that lighter loop there; keep the feature-branch/PR flow above for the
+research branches (`svd`, `als`, `item-2-vec`, `transformer`) and for
+anything merging into `main`.
 
 ---
 
