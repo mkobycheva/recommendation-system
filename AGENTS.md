@@ -2,13 +2,15 @@
 
 ## What this project is
 
-A cross-domain recommender system for books and movies using the Amazon
-Reviews 2023 dataset. The core research question: can a model trained on a user's
-ratings in one domain reliably predict their preferences in another?
+A multi-domain recommender system for books and movies using the Amazon
+Reviews 2023 dataset.
+Core research questions:
+- Does combining a user’s interaction history across both domains (books and movies) into a
+single joint model improve recommendation quality within each domain individually, compared
+to training on that domain alone?
+- Which kind of model is the best for this task?
 
-The current project scope is limited to two domains only: Books and Movies & TV.
-Do not add a third domain for modeling, preprocessing, evaluation, or notebook work
-unless the project scope is explicitly changed later.
+The current project scope is limited to two domains: Books and Movies & TV.
 
 The approach is to establish baselines with simple models, then progressively build
 toward sequential and ensemble methods, evaluating each on cross-domain transfer.
