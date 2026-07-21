@@ -13,6 +13,10 @@ from app.recommenders.item2vec import Item2VecRecommender
 from app.recommenders.sequential import BERT4RecRecommender, SASRecRecommender
 from app.recommenders.svd_als import FoldInRecommender
 
+# The frontend displays 10 at a time but keeps this many around so it can
+# pull in the next candidate as each visible one gets added to the cart.
+SEARCH_FETCH_COUNT = 30
+
 MODEL_LOADERS = {
     "svd": FoldInRecommender.load,
     "als": FoldInRecommender.load,
@@ -93,7 +97,7 @@ def search(q: str, domain: Literal["books", "movies"]) -> list[dict]:
         return []
 
     choices = dict(zip(domain_items["item_id"], domain_items["title"]))
-    matches = process.extract(q, choices, scorer=fuzz.WRatio, limit=10)
+    matches = process.extract(q, choices, scorer=fuzz.WRatio, limit=SEARCH_FETCH_COUNT)
     matched_ids = [item_id for _, _score, item_id in matches]
 
     return _items_to_out(items_metadata, matched_ids)
