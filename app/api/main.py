@@ -72,10 +72,17 @@ def _items_to_out(items_metadata: pd.DataFrame, item_ids: list[str]) -> list[dic
     results = items_metadata.set_index("item_id").reindex(item_ids).dropna(subset=["domain"])
     results = results.reset_index()
     results["title"] = results["title"].replace("", pd.NA).fillna(results["item_id"])
-    # image_url is missing as NaN (float), not None, for items without a cover --
-    # ItemOut.image_url is `str | None`, and pydantic rejects a bare float there.
-    results["image_url"] = results["image_url"].apply(lambda v: v if isinstance(v, str) and v else None)
-    return results[["item_id", "title", "domain", "image_url"]].to_dict("records")
+    records = results[["item_id", "title", "domain", "image_url"]].to_dict("records")
+    # image_url is missing as NaN (float), not None, for items without a cover
+    # -- ItemOut.image_url is `str | None`, and pydantic rejects a bare float.
+    # Normalized here, after to_dict, because reassigning a pandas column with
+    # a mix of None/str can get its dtype re-inferred as a nullable string
+    # type whose missing marker round-trips back to a bare NaN float on the
+    # next to_dict() call.
+    for record in records:
+        if not isinstance(record["image_url"], str) or not record["image_url"]:
+            record["image_url"] = None
+    return records
 
 
 @app.get("/search", response_model=list[ItemOut])

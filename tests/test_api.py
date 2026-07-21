@@ -83,13 +83,22 @@ def _write_items_metadata(artifacts_dir):
     rows = []
     for item_id in ALL_ITEMS:
         domain, asin = item_id.split("::")
+        # Real scraped metadata mixes a missing cover (NaN, not None -- NaN is
+        # truthy in Python) with real URL strings in the same column. That mix
+        # is what makes pandas infer a nullable string dtype for the column,
+        # which is what round-trips a "fixed" None back into a bare NaN float
+        # on to_dict() -- a single-type column doesn't trigger it.
+        if item_id == "books::b0":
+            image_url = float("nan")
+        elif item_id == "books::b1":
+            image_url = "https://example.com/cover.jpg"
+        else:
+            image_url = None
         rows.append({
             "item_id": item_id,
             "domain": domain,
             "title": f"Synthetic title for {asin}",
-            # Real scraped metadata stores a missing cover as NaN (float), not
-            # None -- mix both here so tests catch the "NaN is truthy" bug.
-            "image_url": float("nan") if item_id == "books::b0" else None,
+            "image_url": image_url,
         })
     # Real scraped metadata can have duplicate rows for the same item_id (e.g.
     # heavily-reviewed titles) -- add one so tests catch reindex() blowing up
