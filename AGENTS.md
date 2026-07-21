@@ -42,10 +42,11 @@ recommender-system/
 │   ├── 00_eda.ipynb            <- exploratory data analysis
 │   ├── 00_export_metadata.ipynb  <- exports items_metadata.parquet + publishes
 │   │                               all model artifacts to a public HF Dataset repo
-│   ├── 01_baselines.ipynb      <- SVD and ALS (see also 01_1_svd.ipynb)
+|   ├── 01_baselines.ipynb      <- ALS 
+│   ├── 01_1_svd.ipynb          <- SVD 
 │   ├── 02_item2vec.ipynb
-│   ├── 03_sequential.ipynb     <- LSTM, SASRec, BERT4Rec
-│   └── 04_ensemble.ipynb       <- not done yet
+│   ├── 03_sequential.ipynb     <- SASRec, BERT4Rec
+│   └── 04_lstm.ipynb           <- LSTM
 ├── src/
 │   ├── data/
 │   │   ├── overlap_check.py   <- run this first
@@ -129,29 +130,6 @@ Dataset repo; `space/main.py` downloads them at container startup via
 Deployed on Google Cloud Run — see [DEPLOY.md](DEPLOY.md) for the `gcloud`
 commands, current flags (`--min-instances 0`, `--memory 8Gi`, `--cpu-boost`,
 a long `--startup-probe`), and the reasoning behind each one.
-
----
-
-## Current ALS baseline scope
-
-Completed — kept here as a record of the constraints the trained `als`
-branch model was built under, in case it needs to be reproduced or retrained.
-
-For the first ALS baseline, use only the Books + Movies user intersection.
-
-Use the prepared Google Drive split CSVs directly with `pd.read_csv`:
-`books_train.csv`, `books_valid.csv`, `books_test.csv`, `movies_train.csv`,
-`movies_valid.csv`, and `movies_test.csv`.
-
-Do not implement or depend on `src/data/preprocess.py` for this ALS stage. The
-prepared split files are assumed to already contain the intersecting users and
-valid train/validation/test splits.
-
-Train one collective ALS model on merged Books and Movies train interactions.
-Create globally unique item IDs with a domain prefix, then filter recommendations
-back to the requested target domain before evaluating top-K metrics.
-MAP@K must be implemented in shared Python code under `src/evaluation/`, not only
-inside the notebook.
 
 ---
 
