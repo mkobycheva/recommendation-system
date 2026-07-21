@@ -91,6 +91,10 @@ def _write_items_metadata(artifacts_dir):
             # None -- mix both here so tests catch the "NaN is truthy" bug.
             "image_url": float("nan") if item_id == "books::b0" else None,
         })
+    # Real scraped metadata can have duplicate rows for the same item_id (e.g.
+    # heavily-reviewed titles) -- add one so tests catch reindex() blowing up
+    # on a non-unique index.
+    rows.append(dict(rows[0]))
     pd.DataFrame(rows).to_parquet(artifacts_dir / "items_metadata.parquet", index=False)
 
 

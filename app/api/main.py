@@ -44,7 +44,12 @@ async def lifespan(app: FastAPI):
             f"items_metadata.parquet not found at {items_metadata_path}. "
             "Set ITEMS_METADATA_PATH or ARTIFACTS_DIR before starting the app."
         )
-    app.state.items_metadata = pd.read_parquet(items_metadata_path)
+    items_metadata = pd.read_parquet(items_metadata_path)
+    # The raw scraped metadata can have more than one row for the same item_id
+    # (e.g. heavily-reviewed titles like Harry Potter) -- set_index/reindex in
+    # _items_to_out raises ValueError on a non-unique index, so collapse
+    # duplicates up front.
+    app.state.items_metadata = items_metadata.drop_duplicates(subset="item_id", keep="first")
 
     recommenders = {}
     for model_name, load in MODEL_LOADERS.items():

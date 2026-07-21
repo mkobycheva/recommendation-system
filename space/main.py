@@ -44,6 +44,10 @@ MODEL_LOADERS = {
 
 artifacts_dir = snapshot_download(repo_id=ARTIFACTS_REPO, repo_type="dataset")
 items_metadata = pd.read_parquet(f"{artifacts_dir}/items_metadata.parquet")
+# The raw scraped metadata can have more than one row for the same item_id
+# (e.g. heavily-reviewed titles like Harry Potter) -- set_index/reindex below
+# raises ValueError on a non-unique index, so collapse duplicates up front.
+items_metadata = items_metadata.drop_duplicates(subset="item_id", keep="first")
 recommenders = {name: load(f"{artifacts_dir}/{name}") for name, load in MODEL_LOADERS.items()}
 
 
