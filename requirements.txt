@@ -1,8 +1,8 @@
 pandas==2.2.2
-numpy==1.26.4
+numpy>=2.0
 scipy==1.13.1
 implicit==0.7.3
-gensim==4.3.3
+gensim==4.4.0
 scikit-learn==1.5.2
 fsspec==2025.3.0
 requests==2.32.4

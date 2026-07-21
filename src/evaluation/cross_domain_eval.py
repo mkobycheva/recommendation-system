@@ -16,6 +16,7 @@ def evaluate_multi_domain(
     split_dfs: dict[str, pd.DataFrame],
     recommend_func,
     k=10,
+    map_k=5,
     **kwargs
 ):
     """
@@ -25,7 +26,9 @@ def evaluate_multi_domain(
         split_dfs: Dictionary of datasets, e.g., {'valid': valid_df, 'test': test_df}
         recommend_func: Inference function matching signature:
                         func(user_ids, target_domain, k, **kwargs) -> dict[user_id, list[item_id]]
-        k: Top-N ranking cutoff parameter.
+        k: Top-N ranking cutoff for NDCG/Recall.
+        map_k: Ranking cutoff for MAP. Recommendations are fetched at max(k, map_k)
+               so both cutoffs can be scored from a single recommend_func call.
         **kwargs: Optional backend model factors or vocabularies passed through to inference loops.
 
     Returns:
@@ -51,8 +54,13 @@ def evaluate_multi_domain(
 
         print(f"[Evaluation] Scoring {target_domain.upper()}: {len(all_users):,} unique users across splits")
 
-        # Generate target recommendations using the pipeline's native vector model
-        all_recs = recommend_func(all_users, target_domain, k=k, **kwargs)
+        # Generate target recommendations using the pipeline's native vector model.
+        # Fetch enough items to cover both cutoffs in one pass.
+        all_recs = recommend_func(all_users, target_domain, k=max(k, map_k), **kwargs)
+
+        ndcg_key = f"ndcg@{k}"
+        recall_key = f"recall@{k}"
+        map_key = f"map@{map_k}"
 
         # Separate outputs back out into their respective split metrics arrays
         for split_name, relevant in relevants.items():
@@ -64,19 +72,19 @@ def evaluate_multi_domain(
             # Compute parallel lists of performance metrics
             ndcg_scores = [ndcg_at_k(recs[u], relevant[u], k) for u in relevant if relevant[u]]
             recall_scores = [recall_at_k(recs[u], relevant[u], k) for u in relevant if relevant[u]]
-            map_score = map_at_k(recs, relevant, k=k)
+            map_score = map_at_k(recs, relevant, k=map_k)
 
             all_results.setdefault(split_name, {})[target_domain] = {
-                "ndcg@10": round(float(np.mean(ndcg_scores)), 4) if ndcg_scores else 0.0,
-                "recall@10": round(float(np.mean(recall_scores)), 4) if recall_scores else 0.0,
-                "map@10": round(float(map_score), 4),
+                ndcg_key: round(float(np.mean(ndcg_scores)), 4) if ndcg_scores else 0.0,
+                recall_key: round(float(np.mean(recall_scores)), 4) if recall_scores else 0.0,
+                map_key: round(float(map_score), 4),
                 "n_users": len(ndcg_scores),
             }
 
             print(f"  -> {split_name.upper()} Results:")
-            print(f"     MAP@{k}: {all_results[split_name][target_domain]['map@10']:.4f} | "
-                  f"NDCG@{k}: {all_results[split_name][target_domain]['ndcg@10']:.4f} | "
-                  f"Recall@{k}: {all_results[split_name][target_domain]['recall@10']:.4f}")
+            print(f"     MAP@{map_k}: {all_results[split_name][target_domain][map_key]:.4f} | "
+                  f"NDCG@{k}: {all_results[split_name][target_domain][ndcg_key]:.4f} | "
+                  f"Recall@{k}: {all_results[split_name][target_domain][recall_key]:.4f}")
 
     # Fallback to empty structures if a specific split was omitted during invocation
     valid_out = all_results.get("valid", {d: {} for d in target_domains})
