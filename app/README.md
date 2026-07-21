@@ -79,8 +79,8 @@ Colab artifacts required.
 - `/search` fuzzy match is title-only (rapidfuzz `WRatio`); no
   ranking by popularity.
 - Gradio cart/search state is per-session (`gr.State`), not persisted.
-- Recommendation cards render as Markdown, not `gr.Gallery` -- `image_url`
-  is `None` for most items until real metadata with images is exported
-  (see Task 1 notebook).
+- Search results and recommendations render as `gr.Gallery` with covers
+  (`image_url`); items with no cover in `items_metadata.parquet` fall back to
+  a placeholder image.
 - SASRec/BERT4Rec cold-start uses cart selection order as a stand-in for a
   real interaction sequence -- reordering the same cart can change results.
