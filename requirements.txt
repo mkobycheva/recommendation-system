@@ -1,15 +1,11 @@
 pandas==2.2.2
 numpy>=2.0
-scipy==1.13.1
-implicit==0.7.3
-gensim==4.4.0
-scikit-learn==1.5.2
 fsspec==2025.3.0
 requests==2.32.4
 
-# torch, torchvision, torchaudio, lightning, pytorch-lightning, torchmetrics,
-# wandb are intentionally NOT pinned here: Colab ships a curated, GPU/CUDA-matched
-# set of these already, and forcing old pins via `pip install -r requirements.txt`
-# fights that (downgrade conflicts, needing a runtime restart, wandb API
-# mismatches from a stale SDK). Use whatever Colab provides; `!pip install -U wandb -q`
-# inline in a notebook cell if a specific fix is needed.
+# scikit-learn, scipy, implicit, gensim, torch, torchvision, torchaudio,
+# lightning, pytorch-lightning, torchmetrics, wandb are intentionally NOT
+# pinned/listed here: this notebook only needs pandas/numpy/torch/sklearn's
+# LabelEncoder — implicit/gensim/scipy aren't used at all, and pinning
+# scikit-learn fights Colab's own bundled packages (umap-learn, hdbscan,
+# tsfresh, access all want scikit-learn>=1.6/scipy>=1.14 already).
