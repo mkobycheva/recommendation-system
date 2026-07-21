@@ -1,6 +1,10 @@
 """Model hyperparameter configurations."""
 
-SVD_CONFIG = {}
+SVD_CONFIG = {
+    "n_factors": 100,
+    "k": 10,
+    "batch_size": 512,
+}
 ALS_CONFIG = {
     "factors": 128,
     "regularization": 0.05,
