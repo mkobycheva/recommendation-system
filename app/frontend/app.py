@@ -16,6 +16,14 @@ DOMAIN_CHOICES = ["books", "movies"]
 # visible one gets clicked into the cart, instead of leaving a gap.
 SEARCH_DISPLAY_COUNT = 10
 
+# Brand color -- Gradio themes need a full Tailwind-style tonal scale, not a
+# single hex, so this fills in lighter/darker shades around #95c258.
+BRAND_COLOR = gr.themes.Color(
+    name="brand",
+    c50="#f8fbf4", c100="#eef5e5", c200="#dbebc7", c300="#c4dda2", c400="#accf7c",
+    c500="#95c258", c600="#7eac3f", c700="#688e34", c800="#55742a", c900="#445d22", c950="#293814",
+)
+
 # Shown in place of a cover when items_metadata has no image_url for an item
 # -- avoids depending on an external placeholder service at request time.
 NO_IMAGE_PLACEHOLDER = (
@@ -120,11 +128,11 @@ def compare_recommendations(cart, target_domain, model_a, model_b, k):
     return gallery_a, text_a, gallery_b, text_b
 
 
-with gr.Blocks(title="Cross-domain Recommender MVP") as demo:
+with gr.Blocks(title="Книго-фільмо-чаклун") as demo:
     cart_state = gr.State({})
     search_results_state = gr.State([])
 
-    gr.Markdown("# Книго-фільмо-чаклун ")
+    gr.Markdown("# Книго-фільмо-чаклун")
 
     with gr.Row():
         with gr.Column():
@@ -206,4 +214,4 @@ with gr.Blocks(title="Cross-domain Recommender MVP") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(theme=gr.themes.Soft())
+    demo.launch(theme=gr.themes.Soft(primary_hue=BRAND_COLOR))
